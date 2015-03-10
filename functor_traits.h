@@ -36,6 +36,12 @@ namespace joe
     /// result : casts a functor object instance to a corresponding std::function object
     class is_functor
     {
+    private:
+        template<class... Types>
+        struct arg_count
+        {
+            static const int value = sizeof...( Types );
+        };
         // all possible logic trains are continued for typedef purposes,
         // although not doing so would certainly condense this
     private:
@@ -47,41 +53,53 @@ namespace joe
         template < bool value_type , typename T>
         struct functor_traits : public functor_tag < value_type >
         {
+            static const int arity = 0;
+            typedef void return_type;
             typedef typename T type;
             typedef typename std::function<T> function;
         };
         // false case ( never a non member pointer ) , continue for typedef
         template< bool value_type , typename ReturnType , typename... FArgs>
         struct functor_traits< value_type , ReturnType( *)( FArgs... ) > 
-            : public std::false_type {
+            : public std::false_type{
+            static const int arity = arg_count<FArgs...>::value;
+            typedef typename ReturnType return_type;
             typedef typename ReturnType( *type )( FArgs... );
             typedef typename std::function<ReturnType( *)( FArgs... )> function;
         };
         // generic case , continue for typedef
         template< bool value_type , typename Class , typename ReturnType , typename... FArgs>
         struct functor_traits< value_type , ReturnType( Class::* )( FArgs... )  > 
-            : public functor_tag < value_type > {
+            : public functor_tag < value_type >{
+            static const int arity = arg_count<FArgs...>::value;
+            typedef typename ReturnType return_type;
             typedef ReturnType( Class::*type )( FArgs... );
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         // generic case const , continue for typedef
         template< bool value_type , typename Class , typename ReturnType , typename... FArgs>
         struct functor_traits< value_type , ReturnType( Class::* )( FArgs... ) const > 
-            : public functor_tag < value_type > {
+            : public functor_tag < value_type >{
+            static const int arity = arg_count<FArgs...>::value;
+            typedef typename ReturnType return_type;
             typedef ReturnType( Class::*type )( FArgs... ) const;
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         // generic case volatile , continue for typedef
         template< bool value_type , typename Class , typename ReturnType , typename... FArgs>
         struct functor_traits< value_type , ReturnType( Class::* )( FArgs... ) volatile >
-            : public functor_tag < value_type > {
+            : public functor_tag < value_type >{
+            static const int arity = arg_count<FArgs...>::value;
+            typedef typename ReturnType return_type;
             typedef ReturnType( Class::*type )( FArgs... ) volatile;
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         // generic case const volatile , continue for typedef
         template< bool value_type , typename Class , typename ReturnType , typename... FArgs>
         struct functor_traits< value_type , ReturnType( Class::* )( FArgs... ) const volatile >
-            : public functor_tag < value_type > {
+            : public functor_tag < value_type >{
+            static const int arity = arg_count<FArgs...>::value;
+            typedef typename ReturnType return_type;
             typedef ReturnType( Class::*type )( FArgs... ) const volatile;
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
@@ -112,18 +130,20 @@ namespace joe
             struct if_t
             {
                 typedef typename no_functor_operator<over>::type type;
-                /// The value
                 static const bool value = no_functor_operator<over>::value;
                 typedef typename no_functor_operator<over>::function function;
+                static const int arity = no_functor_operator<over>::arity;
+                typedef typename no_functor_operator<over>::return_type return_type;
             };
             // true result assignment of operator check
             template< typename over >
             struct if_t < true , over >
             {
                 typedef typename is_functor_test_t<typename decltype( &over::operator() )>::type type;
-                /// The value
                 static const bool value = is_functor_test_t<typename decltype( &over::operator() )>::value;
                 typedef typename is_functor_test_t<typename decltype( &over::operator() )>::function function;
+                static const int arity = is_functor_test_t<typename decltype( &over::operator() )>::arity;
+                typedef typename is_functor_test_t<typename decltype( &over::operator() )>::return_type return_type;
             };
             // value ( result of if_t => operator check )
             static const bool value = if_t<defoperator , Any >::value;
@@ -131,6 +151,10 @@ namespace joe
             typedef typename if_t<defoperator , Any >::type type;
             // typedef function  ( result of if_t => operator check )
             typedef typename if_t<defoperator , Any >::function function;
+            // typedef return_type ( result of if_t => operator check )
+            typedef typename if_t<defoperator , Any >::return_type return_type;
+            // arity ( result of if_t => operator check )
+            static const int arity = if_t<defoperator , Any >::arity;
         };
         // false case ( non member function after positive operator condition )
         template<typename  ReturnType , typename... FArgs>
@@ -161,10 +185,11 @@ namespace joe
         template<typename T >
         struct is_functor_c
         {
-            /// The value
+            static const int arity = is_functor_test_t<T>::arity;
             static const bool value = is_functor_test_t<T>::value;
             typedef typename is_functor_test_t<T>::type type;
             typedef typename is_functor_test_t<T>::function function;
+            typedef typename is_functor_test_t<T>::return_type return_type;
         };
         // false case ( non member function ptr before class check )
         /// Struct is_functor_c
@@ -198,31 +223,43 @@ namespace joe
         template < bool cond , typename CheckType >
         struct if_c
         {
+            /// The arity
+            static const int arity = is_functor_t<CheckType>::arity;
             /// The value
             static const bool value = is_functor_t<CheckType>::value;
             // typedef type  ( result of if_c => is_functor_t check )
             typedef typename is_functor_t<CheckType>::type type;
             // typedef function  ( result of if_c => is_functor_t check )
             typedef typename is_functor_t<CheckType>::function function;
+            // typedef return_type  ( result of if_c => is_functor_t check )
+            typedef typename is_functor_t<CheckType>::return_type return_type;
         };
         /// Struct if_c
         template < typename CheckType >
         struct if_c < true , CheckType >
         {
+            /// The arity
+            static const int arity = is_functor_c<CheckType>::arity;
             /// The value
             static const bool value = is_functor_c<CheckType>::value;
             // typedef type  ( result of if_c => is_functor_t check )
             typedef typename is_functor_c<CheckType>::type type;
             // typedef function  ( result of if_c => is_functor_t check )
             typedef typename is_functor_c<CheckType>::function function;
+            // typedef return_type  ( result of if_c => is_functor_t check )
+            typedef typename is_functor_c<CheckType>::return_type return_type;
         };
     public:
+        // The arity ( conditional: returns number of args in the case of a lambda or functor, 0 otherwise )
+        static const int arity = if_c<condition , FunctorType>::arity;
         // The value ( conditional: returns true in the case of a lambda or functor, false otherwise )
         static const bool value = if_c<condition , FunctorType>::value;
         // typedef type ( non conditional: attempts to typedef the functor, function, or function ptr regardless of boolean success )
         typedef typename if_c<condition , FunctorType >::type type;
         // the equivalent ( non conditional: std::function representation of the given functor or lambda )
         typedef typename if_c<condition , FunctorType >::function function;
+        // typedef return_type ( result of if_c => is_functor_t check ) returns void otherwise
+        typedef typename if_c<condition , FunctorType >::return_type return_type;
         // result ( conditional: result of is_functor type instance casted to std::function of generic type )
         static const inline function result( FunctorType& lambda )
         {
@@ -233,7 +270,7 @@ namespace joe
 
     template<typename LambdaType>
     /// alias : is_lambda for actual type : is_functor, fitting as a lambda is abbreviated syntax for a functor
-    struct is_lambda : is_functor < LambdaType > { };
+    struct is_lambda : public is_functor < LambdaType > { };
 
     template <typename FunctorType>
     // converts any given functor or lambda to it's equivalent std::function representation
