@@ -23,11 +23,17 @@ template<typename FuncType  >
 void try_lambda( FuncType f )
 {
     bool is_lambda_value = joe::is_functor<FuncType>::value;
-    std::cout << ( ( is_lambda_value ) ? "is lambda" : "is not lambda" ) << std::endl;
+    std::cout << "the given input " << ( ( is_lambda_value ) ? "is a lambda" : "is not a lambda" ) << std::endl;
     if( is_lambda_value )
     {
+        typedef typename joe::is_functor<FuncType>::type signature;
+        typedef typename joe::is_functor<FuncType>::return_type return_type;
+        //auto func = joe::is_functor<FuncType>::result( f );
         auto func = joe::functor_to_function( f );
         std::cout << "lambda run value : " << ( func( 1.1 , 2.2 , 3.3 ) ) << std::endl;
+        std::cout << "the lambda takes " << joe::is_functor<FuncType>::arity << " arguments" << std::endl;
+        std::cout << "the signature of the lambda is " << typeid( signature ).name() << std::endl;
+        std::cout << "the return type is " << typeid( return_type ).name() << std::endl;
     }
 }
 
@@ -38,10 +44,6 @@ void test_lambda()
     double three = 3.00;
     auto my_lambda = [ = ]( double a , double b , double c ){ return a + b + c; };
     try_lambda( my_lambda );
-    if( std::is_same<joe::is_functor<decltype( my_lambda )>::return_type , double>::value )
-    { std::cout << "the return types match" << std::endl; }
-    else { std::cout << "the return types do not match" << std::endl; }
-    std::cout << "the lambda takes " << joe::is_functor<decltype( my_lambda )>::arity << " arguments" << std::endl;
     PAUSE
 }
 int main(int argc, char* argv[])
