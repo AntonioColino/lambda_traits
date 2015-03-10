@@ -73,7 +73,7 @@ namespace joe
             : public functor_tag < value_type >{
             static const int arity = arg_count<FArgs...>::value;
             typedef typename ReturnType return_type;
-            typedef ReturnType( Class::*type )( FArgs... );
+            typedef ReturnType( *type )( FArgs... );
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         // generic case const , continue for typedef
@@ -82,7 +82,7 @@ namespace joe
             : public functor_tag < value_type >{
             static const int arity = arg_count<FArgs...>::value;
             typedef typename ReturnType return_type;
-            typedef ReturnType( Class::*type )( FArgs... ) const;
+            typedef ReturnType( *type )( FArgs... );
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         // generic case volatile , continue for typedef
@@ -91,7 +91,7 @@ namespace joe
             : public functor_tag < value_type >{
             static const int arity = arg_count<FArgs...>::value;
             typedef typename ReturnType return_type;
-            typedef ReturnType( Class::*type )( FArgs... ) volatile;
+            typedef ReturnType( *type )( FArgs... );
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         // generic case const volatile , continue for typedef
@@ -100,7 +100,7 @@ namespace joe
             : public functor_tag < value_type >{
             static const int arity = arg_count<FArgs...>::value;
             typedef typename ReturnType return_type;
-            typedef ReturnType( Class::*type )( FArgs... ) const volatile;
+            typedef ReturnType( *type )( FArgs... );
             typedef typename std::function<ReturnType( FArgs... )> function;
         };
         /// Struct has_overloaded_operator attempts an operator check
@@ -129,22 +129,24 @@ namespace joe
             template<bool cond , typename over>
             struct if_t
             {
-                typedef typename no_functor_operator<over>::type type;
-                static const bool value = no_functor_operator<over>::value;
-                typedef typename no_functor_operator<over>::function function;
                 static const int arity = no_functor_operator<over>::arity;
+                static const bool value = no_functor_operator<over>::value;
+                typedef typename no_functor_operator<over>::type type;
+                typedef typename no_functor_operator<over>::function function;
                 typedef typename no_functor_operator<over>::return_type return_type;
             };
             // true result assignment of operator check
             template< typename over >
             struct if_t < true , over >
             {
-                typedef typename is_functor_test_t<typename decltype( &over::operator() )>::type type;
-                static const bool value = is_functor_test_t<typename decltype( &over::operator() )>::value;
-                typedef typename is_functor_test_t<typename decltype( &over::operator() )>::function function;
                 static const int arity = is_functor_test_t<typename decltype( &over::operator() )>::arity;
+                static const bool value = is_functor_test_t<typename decltype( &over::operator() )>::value;
+                typedef typename is_functor_test_t<typename decltype( &over::operator() )>::type type;
+                typedef typename is_functor_test_t<typename decltype( &over::operator() )>::function function;
                 typedef typename is_functor_test_t<typename decltype( &over::operator() )>::return_type return_type;
             };
+            // arity ( result of if_t => operator check )
+            static const int arity = if_t<defoperator , Any >::arity;
             // value ( result of if_t => operator check )
             static const bool value = if_t<defoperator , Any >::value;
             // typedef type  ( result of if_t => operator check )
@@ -153,8 +155,6 @@ namespace joe
             typedef typename if_t<defoperator , Any >::function function;
             // typedef return_type ( result of if_t => operator check )
             typedef typename if_t<defoperator , Any >::return_type return_type;
-            // arity ( result of if_t => operator check )
-            static const int arity = if_t<defoperator , Any >::arity;
         };
         // false case ( non member function after positive operator condition )
         template<typename  ReturnType , typename... FArgs>
@@ -281,15 +281,6 @@ namespace joe
         return static_cast< typename is_functor<FunctorType>::function >( lambda );
     }
 
-    template <typename FunctorType>
-    // converts any given functor or lambda to it's equivalent function pointer representation
-    // unlike the result member of is_functor, this convenience function does not require that the
-    // input actually be a functor or lambda, meaning it will convert some other functions as well
-    static const inline typename is_functor<FunctorType>::type functor_to_function_ptr( FunctorType& lambda )
-    {
-        return static_cast< typename is_functor<FunctorType>::type >( lambda );
-    }
-
     template <typename LambdaType>
     // converts any given functor or lambda to it's equivalent std::function representation
     // unlike the result member of is_functor, this convenience function does not require that the
@@ -297,15 +288,6 @@ namespace joe
     static const inline typename is_lambda<LambdaType>::function lambda_to_function( LambdaType& lambda )
     {
         return static_cast< typename is_lambda<LambdaType>::function >( lambda );
-    }
-
-    template <typename LambdaType>
-    // converts any given functor or lambda to it's equivalent function pointer representation
-    // unlike the result member of is_functor, this convenience function does not require that the
-    // input actually be a functor or lambda, meaning it will convert some other functions as well
-    static const inline typename is_lambda<LambdaType>::type lambda_to_function_ptr( LambdaType& lambda )
-    {
-        return static_cast< typename is_lambda<LambdaType>::type >( lambda );
     }
 }
 
